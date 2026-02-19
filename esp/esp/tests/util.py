@@ -13,13 +13,13 @@ class CacheFlushTestCase(TestCase):
         if hasattr(cache, "flush_all"):
             cache.flush_all()
         else:
-            # Best effort to clear out everything anyway
+            # Best effort to clear out everything anyway by rotating the key
+            # prefix so that all previously cached values become unreachable.
             dump_all_caches()
 
-            from esp import settings
-            settings.CACHE_PREFIX = ''.join( random.sample( string.ascii_letters + string.digits, 16 ) )
             from django.conf import settings as django_settings
-            django_settings.CACHE_PREFIX = settings.CACHE_PREFIX
+            new_prefix = ''.join(random.sample(string.ascii_letters + string.digits, 16))
+            django_settings.CACHES['default']['KEY_PREFIX'] = new_prefix
 
     def _fixture_setup(self):
         self._flush_cache()
