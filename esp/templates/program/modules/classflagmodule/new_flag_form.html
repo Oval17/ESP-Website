@@ -6,7 +6,7 @@
                 <tr>
                     <th> Flag type: </th>
                     <td>
-                        <select name="flag_type" tabindex="1">
+                        <select name="flag_type">
                             <option selected="selected" value=""></option>
                             {% for flag in flag_types %}
                                 <option value="{{flag.id}}">{{flag.name}}</option>
@@ -15,13 +15,13 @@
                     </td>
                 </tr>
                 <tr>
+                    <td>
+                        <textarea id="new-flag-comment-{{class.id}}" name="comment" rows="4" cols="60"></textarea>
+                    </td>
                     <th>
                         Comment:<br/>
-                        <input type="submit" class="flag-submit-new btn btn-default" value="Save" tabindex="3"></input>
+                        <input type="submit" class="flag-submit-new btn btn-default" value="Save"></input>
                     </th>
-                    <td>
-                        <textarea id="new-flag-comment-{{class.id}}" name="comment" rows="4" cols="60" tabindex="2"></textarea>
-                    </td>
                 </tr>
             </tbody>
         </table>
