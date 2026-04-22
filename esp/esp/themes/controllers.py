@@ -260,11 +260,95 @@ class ThemeController(object):
 
         return css_data
 
+    def has_scss(self, theme_name):
+        """Return True if this theme uses the SCSS/Bootstrap 4 pipeline."""
+        theme_scss_dir = os.path.join(self.base_dir(theme_name), 'scss')
+        return os.path.isdir(theme_scss_dir)
+
+    def get_scss_names(self, theme_name, theme_only=False):
+        """Return ordered list of SCSS files to concatenate for compilation."""
+        result = []
+        if not theme_only:
+            # Theme-editor-level variables must come BEFORE Bootstrap so that
+            # Bootstrap's !default variables pick up our overrides.
+            result.append(os.path.join(themes_settings.scss_dir, 'variables_custom.scss'))
+            result.append(os.path.join(themes_settings.scss_dir, 'main.scss'))
+
+        # Theme-specific variables also before Bootstrap overrides.
+        theme_scss_dir = os.path.join(self.base_dir(theme_name), 'scss')
+        theme_files = self.list_filenames(theme_scss_dir, r'\.scss$')
+        nonvariable_files = []
+        for theme_file in theme_files:
+            if os.path.basename(theme_file).startswith('variables'):
+                result.append(theme_file)
+            else:
+                nonvariable_files.append(theme_file)
+        result += nonvariable_files
+        return result
+
+    def find_scss_variables(self, theme_name=None, theme_only=False, flat=False):
+        if theme_name is None:
+            theme_name = self.get_current_theme()
+        results = {}
+        for filename in self.get_scss_names(theme_name, theme_only=theme_only):
+            local_results = {}
+            logger.debug('find_scss_variables: including file %s', filename)
+            with open(filename) as f:
+                scss_data = f.read()
+            for item in re.findall(r'\$([a-zA-Z0-9_]+):\s*(.*?);', scss_data):
+                local_results[item[0]] = item[1]
+            if flat:
+                results.update(local_results)
+            else:
+                results[filename] = local_results
+        return results
+
+    def compile_scss(self, scss_data):
+        """Compile SCSS source string using dart-sass, return CSS bytes."""
+        bootstrap4_scss_dir = os.path.join(settings.MEDIA_ROOT, 'theme_editor', 'node_modules', 'bootstrap', 'scss')
+        sass_bin = os.path.join(settings.MEDIA_ROOT, 'theme_editor', 'node_modules', '.bin', 'sass')
+        sass_args = [
+            sass_bin,
+            '--stdin',
+            f'--load-path={bootstrap4_scss_dir}',
+            '--no-source-map',
+        ]
+        sass_process = subprocess.Popen(sass_args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        css_data = sass_process.communicate(scss_data.encode())[0]
+
+        if sass_process.returncode != 0:
+            raise ESPError(
+                f'The stylesheet compiler (sass) returned error code {sass_process.returncode}. '
+                f'Please check the SCSS sources and settings you are using to generate the theme, '
+                f'or contact the <a href="mailto:{settings.DEFAULT_EMAIL_ADDRESSES["support"]}">Web support team</a>.'
+                f'<br />SCSS compile command was: <pre>{" ".join(sass_args)}</pre>',
+                log=True,
+            )
+        return css_data
+
     def get_variable_defaults(self, theme_name=None):
         # This is particularly important for themes that have variables files with LESS (e.g., darken())
         # Otherwise it basically does the same thing as find_less_variables()
         if theme_name is None:
             theme_name = self.get_current_theme()
+
+        if self.has_scss(theme_name):
+            scss_data = ''
+            for filename in self.list_filenames(os.path.join(self.base_dir(theme_name), 'scss'), r'variables.*\.scss$'):
+                with open(filename) as f:
+                    logger.debug('Including SCSS source %s', filename)
+                    scss_data += '\n' + f.read()
+
+            scss_data += '\ndiv {'
+            for item in re.findall(r'\$([a-zA-Z0-9_]+):\s*(.*?);', scss_data):
+                scss_data += f'\n  {item[0]}: ${item[0]};'
+            scss_data += '\n}'
+
+            css_data = self.compile_scss(scss_data)
+            compiled_defaults = dict(re.findall(r'\s([a-zA-Z0-9_]+):\s*(.*?);', css_data.decode('UTF-8')))
+            defaults = self.find_scss_variables(theme_name, flat=True)
+            defaults.update(compiled_defaults)
+            return defaults
 
         less_data = ''
         # load variable LESS from files
@@ -294,24 +378,50 @@ class ThemeController(object):
         return defaults
 
     def compile_css(self, theme_name, variable_data, output_filename):
-        #   Load LESS files in order of search path
-        less_data = ''
-        for filename in self.get_less_names(theme_name):
-            less_file = open(filename)
-            logger.debug('Including LESS source %s', filename)
-            less_data += '\n' + less_file.read()
-            less_file.close()
+        if self.has_scss(theme_name):
+            # SCSS/Bootstrap 4 pipeline
+            scss_data = ''
+            for filename in self.get_scss_names(theme_name):
+                with open(filename) as f:
+                    logger.debug('Including SCSS source %s', filename)
+                    scss_data += '\n' + f.read()
 
-        #   Make icon image path load from the CDN by default
-        if 'iconSpritePath' not in variable_data:
-            variable_data['iconSpritePath'] = f'"{settings.CDN_ADDRESS}/bootstrap/img/glyphicons-halflings.png"'
+            # Bootstrap 4 is imported inline (not concatenated) so dart-sass
+            # can resolve its own @imports via --load-path.
+            bootstrap4_entry = os.path.join(
+                settings.MEDIA_ROOT, 'theme_editor', 'node_modules', 'bootstrap', 'scss', 'bootstrap.scss'
+            )
+            bootstrap_import = f'\n@import "{bootstrap4_entry}";\n'
+            # Insert Bootstrap import after variable definitions, before theme styles.
+            scss_data = scss_data + bootstrap_import
 
-        #   Replace all variable declarations for which we have a value defined
-        for (variable_name, variable_value) in variable_data.items():
-            less_data = re.sub(rf'@{variable_name}:(\s*)(.*?);', f'@{variable_name}: {variable_value};', less_data)
+            #   Replace all SCSS variable declarations for which we have a value defined
+            for (variable_name, variable_value) in variable_data.items():
+                scss_data = re.sub(
+                    rf'\${variable_name}:(\s*)(.*?);',
+                    f'${variable_name}: {variable_value};',
+                    scss_data,
+                )
 
-        #   Compile to CSS
-        css_data = self.compile_less(less_data)
+            css_data = self.compile_scss(scss_data)
+        else:
+            # LESS/Bootstrap 3 pipeline
+            less_data = ''
+            for filename in self.get_less_names(theme_name):
+                less_file = open(filename)
+                logger.debug('Including LESS source %s', filename)
+                less_data += '\n' + less_file.read()
+                less_file.close()
+
+            #   Make icon image path load from the CDN by default
+            if 'iconSpritePath' not in variable_data:
+                variable_data['iconSpritePath'] = f'"{settings.CDN_ADDRESS}/bootstrap/img/glyphicons-halflings.png"'
+
+            #   Replace all variable declarations for which we have a value defined
+            for (variable_name, variable_value) in variable_data.items():
+                less_data = re.sub(rf'@{variable_name}:(\s*)(.*?);', f'@{variable_name}: {variable_value};', less_data)
+
+            css_data = self.compile_less(less_data)
 
         with open(output_filename, 'w') as output_file:
             output_file.write(str(THEME_COMPILED_WARNING) + css_data.decode('UTF-8'))
