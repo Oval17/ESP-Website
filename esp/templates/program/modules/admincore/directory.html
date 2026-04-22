@@ -83,10 +83,10 @@ $j(document).ready(function() {
 Welcome to the administrative home page for {{ program.niceName }}.  This page links to the most common functions needed by program administrators, many of which are documented on <a href="https://wiki.learningu.org/How_to_use_the_website">the LU wiki</a>.  Feel free to edit these directions to add your program-specific links and notes here.
 {% end_inline_program_qsd_block %}
 
-<div class="row-fluid">
+<div class="row">
     <div class="span10 offset1">
-        <table class="table table-condensed" align="center" width="400">
-            <tr class="well"><th width="85%">Steps to Set Up This Program</th><th>Done?</th></tr>
+        <table class="table table-sm" align="center" width="400">
+            <tr class="card p-3 mb-3"><th width="85%">Steps to Set Up This Program</th><th>Done?</th></tr>
             {% for module in modules %}
             {% if module.isStep and not module.isCompleted %}
             <tr>
@@ -111,7 +111,7 @@ Welcome to the administrative home page for {{ program.niceName }}.  This page l
             </tr>
             {% endif %}
             {% endfor %}
-            <tr class="well" id="completed_steps"><th colspan="2">Completed Steps (click to expand)</th></tr>
+            <tr class="card p-3 mb-3" id="completed_steps"><th colspan="2">Completed Steps (click to expand)</th></tr>
             {% for module in modules %}
             {% if module.isStep and module.isCompleted %}
             <tr class="iscompleted" hidden>

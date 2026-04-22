@@ -100,7 +100,7 @@
                         <a class="sidelink" onclick="$j(this).parent().submit();return false;" href="">Unenroll from all classes</a>
                     </form>
                 </div>
-                <table class="table-condensed modules">
+                <table class="table-sm modules">
                 {% for module in learn_modules %}
                     {% if module.isStep %}
                     <tr>
@@ -117,7 +117,7 @@
                 {% endfor %}
                 </table>
                 {% if learn_records %}
-                    <table class="table-condensed modules">
+                    <table class="table-sm modules">
                     {% for record in learn_records %}
                         <tr>
                             <td>
@@ -157,7 +157,7 @@
                         <a id="getmoderatorschedulelink" class="sidelink" href="/teach/{{program.getUrlBase}}/moderatorschedule?user={{user.id}}" target="_new">Print {{program.getModeratorTitle|lower}} schedule locally</a>
                     </div>
                 {% endif %}
-                <table class="table-condensed modules">
+                <table class="table-sm modules">
                 {% for module in teach_modules %}
                     {% if module.isStep %}
                     <tr>
@@ -174,7 +174,7 @@
                 {% endfor %}
                 </table>
                 {% if teach_records %}
-                    <table class="table-condensed modules">
+                    <table class="table-sm modules">
                     {% for record in teach_records %}
                         <tr>
                             <td>
@@ -211,8 +211,8 @@
     <span class="edit" style="display:none;">
         <input type="text" id="edit_first_name" value="{{ user.first_name }}" placeholder="First Name" />
         <input type="text" id="edit_last_name" value="{{ user.last_name }}" placeholder="Last Name" />
-        <button class="btn btn-small btn-primary" onclick="submitEditUser('name');">Save</button>
-        <button class="btn btn-small btn-default" onclick="toggleEditUser('name', false); return false;">Cancel</button>
+        <button class="btn btn-sm btn-primary" onclick="submitEditUser('name');">Save</button>
+        <button class="btn btn-sm btn-default" onclick="toggleEditUser('name', false); return false;">Cancel</button>
     </span>
 </td></tr>
 <tr><td class="key">Gender</td><td>{% if profile.student_info.gender %}{{ profile.student_info.gender }}{% else %}Not specified{% endif %}</td></tr>
@@ -223,8 +223,8 @@
     <span class="disp">{{ user.email }} <a href="#" onclick="toggleEditUser('email', true); return false;" aria-label="Edit email" title="Edit email"><i class="bi bi-pencil" style="font-size: 0.8em; margin-left: 5px; color: #888;" aria-hidden="true"></i></a></span>
     <span class="edit" style="display:none;">
         <input type="email" id="edit_email" value="{{ user.email }}" placeholder="Email" style="width: 250px;" />
-        <button class="btn btn-small btn-primary" onclick="submitEditUser('email');">Save</button>
-        <button class="btn btn-small btn-default" onclick="toggleEditUser('email', false); return false;">Cancel</button>
+        <button class="btn btn-sm btn-primary" onclick="submitEditUser('email');">Save</button>
+        <button class="btn btn-sm btn-default" onclick="toggleEditUser('email', false); return false;">Cancel</button>
     </span>
 </td></tr>
 {% if profile.contact_user %}

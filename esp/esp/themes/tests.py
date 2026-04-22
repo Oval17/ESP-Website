@@ -233,6 +233,32 @@ class ThemesTest(TestCase):
         #   We're done.  Log out.
         self.client.logout()
 
+    def testScssThemes(self):
+        """Check that all SCSS-based themes compile and that Bootswatch integration is available."""
+        tc = ThemeController()
+        scss_themes = [t for t in tc.get_theme_names() if tc.has_scss(t)]
+        # barebones uses LESS; the rest use SCSS
+        self.assertIn('droplets', scss_themes)
+        self.assertIn('bigpicture', scss_themes)
+        self.assertNotIn('barebones', scss_themes)
+
+        # Bootswatch themes are listed
+        bw_themes = tc.get_bootswatch_themes()
+        self.assertIn('cerulean', bw_themes)
+        self.assertIn('flatly', bw_themes)
+        # All SCSS themes compile without error
+        import tempfile
+        for theme_name in scss_themes:
+            with tempfile.NamedTemporaryFile(suffix='.css', delete=False) as f:
+                out_css = f.name
+            try:
+                tc.compile_css(theme_name, {}, out_css)
+                self.assertTrue(os.path.getsize(out_css) > 1000,
+                                f'{theme_name} compiled CSS is suspiciously small')
+            finally:
+                if os.path.exists(out_css):
+                    os.remove(out_css)
+
     def testRecompileThemeCreatesMissingCustomization(self):
         """ Check that recompile_theme does not crash and leaves the system in a consistent state
             by creating the customization file if it is missing. """
