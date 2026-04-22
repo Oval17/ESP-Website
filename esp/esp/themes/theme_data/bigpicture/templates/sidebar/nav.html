@@ -1,8 +1,8 @@
-<ul class="nav flex-column sidebar" id="nav_sidebar">
+<nav aria-label="Site navigation" class="d-none d-md-block">
+  <ul class="nav flex-column sidebar" id="nav_sidebar">
     {% for section in theme.nav_structure %}
     {% if section.header %}
     <li class="nav-header">
-        {# links on headers are optional #}
         {% if section.header_link %}
         <a href="{{section.header_link}}">
         {% endif %}
@@ -12,34 +12,34 @@
         {% endif %}
     </li>
     {% endif %}
-
     {% for item in section.links %}
-    {# TODO(benkraft): allow adding classes to items so we can do logged-in only #}
     <li>
-        <a href="{{item.link}}">
+        <a class="nav-link" href="{{item.link}}">
             {% if item.icon %}
-            <i class="bi bi-{{item.icon}}"></i>
+            <i class="bi bi-{{item.icon}}" aria-hidden="true"></i>
             {% endif %}
             {{item.text}}
         </a>
     </li>
     {% endfor %}
     {% endfor %}
-</ul>
+  </ul>
+</nav>
 
-<div class="accordion sidebar" id="nav_accordion">
+<div class="accordion sidebar d-md-none" id="nav_accordion">
     <div class="card">
         <div class="card-header">
-            <a data-bs-toggle="collapse" data-bs-parent="#nav_accordion" href="#collapseOne">
-                <i class="bi bi-list"></i> Navigation
-            </a>
+            <button class="btn btn-link text-decoration-none" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#collapseOne"
+                    aria-expanded="false" aria-controls="collapseOne">
+                <i class="bi bi-list" aria-hidden="true"></i> Navigation
+            </button>
         </div>
         <div id="collapseOne" class="collapse">
             <ul class="nav flex-column sidebar">
             {% for section in theme.nav_structure %}
             {% if section.header %}
             <li class="nav-header">
-                {# links on headers are optional #}
                 {% if section.header_link %}
                 <a href="{{section.header_link}}">
                 {% endif %}
@@ -49,13 +49,11 @@
                 {% endif %}
             </li>
             {% endif %}
-
             {% for item in section.links %}
-            {# TODO(benkraft): allow adding classes to items so we can do logged-in only #}
             <li>
-                <a href="{{item.link}}">
+                <a class="nav-link" href="{{item.link}}">
                     {% if item.icon %}
-                    <i class="bi bi-{{item.icon}}"></i>
+                    <i class="bi bi-{{item.icon}}" aria-hidden="true"></i>
                     {% endif %}
                     {{item.text}}
                 </a>

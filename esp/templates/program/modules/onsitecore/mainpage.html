@@ -28,28 +28,28 @@
         {% if program|hasModule:"OnSiteCheckinModule" %}
         <div class="module_button">
             <a href="/onsite/{{ program.getUrlBase }}/rapidcheckin"><button type="button" class="module_link_large">
-                <div class="module_link_main"><i class="bi bi-box-arrow-in-right"></i> Check-in Students</div>
+                <div class="module_link_main"><i class="bi bi-box-arrow-in-right" aria-hidden="true"></i> Check-in Students</div>
             </button></a>
         </div>
         {% endif %}
         {% if program|hasModule:"OnSiteCheckoutModule" %}
         <div class="module_button">
             <a href="/onsite/{{ program.getUrlBase }}/checkout"><button type="button" class="module_link_large">
-                <div class="module_link_main"><i class="bi bi-box-arrow-right"></i> Check-out Students</div>
+                <div class="module_link_main"><i class="bi bi-box-arrow-right" aria-hidden="true"></i> Check-out Students</div>
             </button></a>
         </div>
         {% endif %}
         {% if program|hasModule:"OnSiteRegister" %}
         <div class="module_button">
             <a href="/onsite/{{ program.getUrlBase }}/onsite_create"><button type="button" class="module_link_large">
-                <div class="module_link_main"><i class="bi bi-person"></i> Register a New Student</div>
+                <div class="module_link_main"><i class="bi bi-person" aria-hidden="true"></i> Register a New Student</div>
             </button></a>
         </div>
         {% endif %}
         {% if program|hasModule:"TeacherCheckinModule" %}
         <div class="module_button">
             <a href="/onsite/{{ program.getUrlBase }}/teachercheckin"><button type="button" class="module_link_large">
-                <div class="module_link_main"><i class="bi bi-check-square"></i> Check-in Teachers{% if program|hasModule:"TeacherModeratorModule" %}/{{ program.getModeratorTitle }}s{% endif %}</div>
+                <div class="module_link_main"><i class="bi bi-check-square" aria-hidden="true"></i> Check-in Teachers{% if program|hasModule:"TeacherModeratorModule" %}/{{ program.getModeratorTitle }}s{% endif %}</div>
             </button></a>
         </div>
         {% endif %}
@@ -63,28 +63,28 @@
         {% if program|hasModule:"OnsiteClassSchedule" %}
         <div class="module_button">
             <a href="/onsite/{{ program.getUrlBase }}/schedule_students"><button type="button" class="module_link_large">
-                <div class="module_link_main"><i class="bi bi-calendar"></i> Scheduling and Class Changes</div>
+                <div class="module_link_main"><i class="bi bi-calendar" aria-hidden="true"></i> Scheduling and Class Changes</div>
             </button></a>
         </div>
         {% endif %}
         {% if program|hasModule:"OnSiteClassList" %}
         <div class="module_button">
             <a href="/onsite/{{ program.getUrlBase }}/classchange_grid"><button type="button" class="module_link_large">
-                <div class="module_link_main"><i class="bi bi-grid-3x3-gap"></i> Grid-Based Class Changes</div>
+                <div class="module_link_main"><i class="bi bi-grid-3x3-gap" aria-hidden="true"></i> Grid-Based Class Changes</div>
             </button></a>
         </div>
         {% endif %}
         {% if program|hasModule:"OnSiteClassList" %}
         <div class="module_button">
             <a href="/onsite/{{ program.getUrlBase }}/classList"><button type="button" class="module_link_large">
-                <div class="module_link_main"><i class="bi bi-list"></i> Scrolling Class List</div>
+                <div class="module_link_main"><i class="bi bi-list" aria-hidden="true"></i> Scrolling Class List</div>
             </button></a>
         </div>
         {% endif %}
         {% if program|hasModule:"OnSiteClassList" %}
         <div class="module_button">
             <a href="/onsite/{{ program.getUrlBase }}/allClassList"><button type="button" class="module_link_large">
-                <div class="module_link_main"><i class="bi bi-list-check"></i> List of Open Classes</div>
+                <div class="module_link_main"><i class="bi bi-list-check" aria-hidden="true"></i> List of Open Classes</div>
             </button></a>
         </div>
         {% endif %}
@@ -98,14 +98,14 @@
         {% if program|hasModule:"OnSiteAttendance" %}
         <div class="module_button">
             <a href="/onsite/{{ program.getUrlBase }}/attendance"><button type="button" class="module_link_large">
-                <div class="module_link_main"><i class="bi bi-list-ul"></i> Check Student Attendance</div>
+                <div class="module_link_main"><i class="bi bi-list-ul" aria-hidden="true"></i> Check Student Attendance</div>
             </button></a>
         </div>
         {% endif %}
         {% if program|hasModule:"OnsitePaidItemsModule" %}
         <div class="module_button">
             <a href="/onsite/{{ program.getUrlBase }}/paiditems"><button type="button" class="module_link_large">
-                <div class="module_link_main"><i class="bi bi-cart"></i> View Student's Purchased Items</div>
+                <div class="module_link_main"><i class="bi bi-cart" aria-hidden="true"></i> View Student's Purchased Items</div>
             </button></a>
         </div>
         {% endif %}

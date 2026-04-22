@@ -1,15 +1,17 @@
 {% for category in theme.nav_structure reversed %}
 <ul class="nav navbar-nav">
-  <li class="dropdown{% if request.path|slice:':5' != category.header_link|slice:':5' %} inactive{% else %} active{% endif %}">
-    <a href="{{ category.header_link }}" class="navbar-item-label">
+  <li class="nav-item dropdown{% if request.path|slice:':5' != category.header_link|slice:':5' %} inactive{% else %} active{% endif %}">
+    <a href="{{ category.header_link }}" class="nav-link navbar-item-label">
       {{ category.header }}
     </a>
-    <a class="dropdown-toggle caret-wrapper" data-bs-toggle="dropdown"><b class="caret"></b></a>
-    <ul class="dropdown-menu pull-left">
+    <a class="nav-link dropdown-toggle dropdown-toggle-split"
+       data-bs-toggle="dropdown" aria-expanded="false"
+       aria-label="Toggle {{ category.header }} submenu"></a>
+    <ul class="dropdown-menu">
       {% for item in category.links %}
-      <li><a href="{{ item.link }}">
+      <li><a class="dropdown-item" href="{{ item.link }}">
         {% if item.icon %}
-        <i class="bi bi-{{item.icon}}"></i>
+        <i class="bi bi-{{item.icon}}" aria-hidden="true"></i>
         {% endif %}
         {{ item.text }}
       </a></li>

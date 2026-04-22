@@ -1,10 +1,10 @@
 <ul class="nav navbar-nav admin hidden">
-  <li class="dropdown">
-    <a class="navbar-item-label" data-bs-toggle="dropdown">
+  <li class="nav-item dropdown">
+    <a class="nav-link navbar-item-label dropdown-toggle" id="admin-toolbar-menu"
+       data-bs-toggle="dropdown" aria-expanded="false" role="button">
       Admin Toolbar
     </a>
-    <a class="dropdown-toggle caret-wrapper" data-bs-toggle="dropdown"><b class="caret"></b></a>
-    <ul class="dropdown-menu pull-left">
+    <ul class="dropdown-menu" aria-labelledby="admin-toolbar-menu">
       {% comment %} === Admin Toolbar (includes user search) === {% endcomment %}
       {% load modules %}
       <link rel="stylesheet" type="text/css" href="/media/styles/admin_bar.css">
@@ -32,9 +32,9 @@
   </li>
 </ul>
 <ul class="nav navbar-nav unmorph hidden">
-  <li>
-    <a href="/myesp/switchback/">
-      <i class="bi bi-person"></i> Unmorph to <script type="text/javascript">document.write(esp_user.cur_retTitle);</script>
+  <li class="nav-item">
+    <a class="nav-link" href="/myesp/switchback/">
+      <i class="bi bi-person" aria-hidden="true"></i> Unmorph to <script type="text/javascript">document.write(esp_user.cur_retTitle);</script>
     </a>
   </li>
 </ul>

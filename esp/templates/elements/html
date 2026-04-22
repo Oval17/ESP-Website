@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-{% block doctype %}<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">{% endblock doctype %}
-<html xmlns="http://www.w3.org/1999/xhtml">
+{% block doctype %}<!DOCTYPE html>{% endblock doctype %}
+<html lang="en">
 {% if theme %}<!-- Theme: {{ theme.theme_name }} -->{% endif %}
   <head>
     <title>{% block fulltitle %}{% endblock %}</title>
@@ -20,21 +20,9 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/media/images/apple-touch-icon.png?v={{ current_favicon_version }}">
     <link rel="manifest" href="/media/images/site.webmanifest?v={{ current_favicon_version }}">
     <style>
-      .skip-nav {
-        position: absolute;
-        top: -40px;
-        left: 0;
-        background: #000;
-        color: #fff;
-        padding: 8px;
-        text-decoration: none;
-        z-index: 100;
-      }
-
-      .skip-nav:focus,
-      .skip-nav:focus-visible {
-        top: 0;
-      }
+      /* Critical skip-nav rule — loaded before theme CSS to prevent FOUC */
+      .skip-nav { position: absolute; top: -40px; left: 0; z-index: 9999; }
+      .skip-nav:focus { top: 0; }
     </style>
     <link rel="stylesheet" type="text/css" href="/media/styles/qsd.css" />
 
