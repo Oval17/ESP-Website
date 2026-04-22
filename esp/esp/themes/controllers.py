@@ -303,14 +303,26 @@ class ThemeController(object):
                 results[filename] = local_results
         return results
 
+    def get_bootswatch_themes(self):
+        """Return sorted list of available Bootswatch theme names."""
+        bootswatch_dist = os.path.join(settings.MEDIA_ROOT, 'theme_editor', 'node_modules', 'bootswatch', 'dist')
+        if not os.path.isdir(bootswatch_dist):
+            return []
+        return sorted([
+            d for d in os.listdir(bootswatch_dist)
+            if os.path.isdir(os.path.join(bootswatch_dist, d))
+        ])
+
     def compile_scss(self, scss_data):
         """Compile SCSS source string using dart-sass, return CSS bytes."""
-        bootstrap4_scss_dir = os.path.join(settings.MEDIA_ROOT, 'theme_editor', 'node_modules', 'bootstrap', 'scss')
+        bootstrap5_scss_dir = os.path.join(settings.MEDIA_ROOT, 'theme_editor', 'node_modules', 'bootstrap', 'scss')
+        bootswatch_dist = os.path.join(settings.MEDIA_ROOT, 'theme_editor', 'node_modules', 'bootswatch', 'dist')
         sass_bin = os.path.join(settings.MEDIA_ROOT, 'theme_editor', 'node_modules', '.bin', 'sass')
         sass_args = [
             sass_bin,
             '--stdin',
-            f'--load-path={bootstrap4_scss_dir}',
+            f'--load-path={bootstrap5_scss_dir}',
+            f'--load-path={bootswatch_dist}',
             '--no-source-map',
         ]
         sass_process = subprocess.Popen(sass_args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -379,21 +391,49 @@ class ThemeController(object):
 
     def compile_css(self, theme_name, variable_data, output_filename):
         if self.has_scss(theme_name):
-            # SCSS/Bootstrap 4 pipeline
-            scss_data = ''
-            for filename in self.get_scss_names(theme_name):
-                with open(filename) as f:
-                    logger.debug('Including SCSS source %s', filename)
-                    scss_data += '\n' + f.read()
-
-            # Bootstrap 4 is imported inline (not concatenated) so dart-sass
-            # can resolve its own @imports via --load-path.
-            bootstrap4_entry = os.path.join(
+            # SCSS/Bootstrap 5 pipeline
+            scss_dir = themes_settings.scss_dir
+            bootstrap5_entry = os.path.join(
                 settings.MEDIA_ROOT, 'theme_editor', 'node_modules', 'bootstrap', 'scss', 'bootstrap.scss'
             )
-            bootstrap_import = f'\n@import "{bootstrap4_entry}";\n'
-            # Insert Bootstrap import after variable definitions, before theme styles.
-            scss_data = scss_data + bootstrap_import
+            bootswatch_dist = os.path.join(
+                settings.MEDIA_ROOT, 'theme_editor', 'node_modules', 'bootswatch', 'dist'
+            )
+            bootswatch_theme = Tag.getTag('bootswatch_theme', default='')
+            theme_scss_dir = os.path.join(self.base_dir(theme_name), 'scss')
+
+            # --- Part 1: Variables (before Bootstrap so !default overrides work) ---
+            scss_data = ''
+            with open(os.path.join(scss_dir, 'variables_custom.scss')) as f:
+                logger.debug('Including SCSS source variables_custom.scss')
+                scss_data += f.read() + '\n'
+            for filename in self.list_filenames(theme_scss_dir, r'variables.*\.scss$'):
+                with open(filename) as f:
+                    logger.debug('Including SCSS source %s', filename)
+                    scss_data += f.read() + '\n'
+
+            # Bootswatch variables come after ours so ESP vars win, but before Bootstrap
+            if bootswatch_theme:
+                bw_vars = os.path.join(bootswatch_dist, bootswatch_theme, 'variables')
+                scss_data += f'\n@import "{bw_vars}";\n'
+
+            # Bootstrap 5 is imported inline so dart-sass can resolve its own @imports
+            scss_data += f'\n@import "{bootstrap5_entry}";\n'
+
+            # Bootswatch component overrides go after Bootstrap
+            if bootswatch_theme:
+                bw_scss = os.path.join(bootswatch_dist, bootswatch_theme, 'bootswatch')
+                scss_data += f'\n@import "{bw_scss}";\n'
+
+            # --- Part 2: CSS rules AFTER Bootstrap so theme overrides win the cascade ---
+            with open(os.path.join(scss_dir, 'main.scss')) as f:
+                logger.debug('Including SCSS source main.scss')
+                scss_data += f.read() + '\n'
+            for filename in self.list_filenames(theme_scss_dir, r'\.scss$'):
+                if not os.path.basename(filename).startswith('variables'):
+                    with open(filename) as f:
+                        logger.debug('Including SCSS source %s', filename)
+                        scss_data += f.read() + '\n'
 
             #   Replace all SCSS variable declarations for which we have a value defined
             for (variable_name, variable_value) in variable_data.items():
@@ -630,8 +670,12 @@ class ThemeController(object):
 
     def customize_theme(self, vars):
         logger.debug('Customizing theme with variables: %s', vars)
-        self.compile_css(self.get_current_theme(), vars, self.css_filename)
-        vars_available = self.find_less_variables(self.get_current_theme(), flat=True)
+        current_theme = self.get_current_theme()
+        self.compile_css(current_theme, vars, self.css_filename)
+        if self.has_scss(current_theme):
+            vars_available = self.find_scss_variables(current_theme, flat=True)
+        else:
+            vars_available = self.find_less_variables(current_theme, flat=True)
         vars_diff = {}
         for key in vars:
             if key in vars_available and len(vars[key].strip()) > 0 and vars[key] != vars_available[key]:

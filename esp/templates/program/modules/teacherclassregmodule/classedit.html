@@ -59,7 +59,7 @@
 {% if form.errors %}
 <p align="center">
 <div class="alert alert-danger">
-    <span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span>
+    <span class="bi bi-info-circle" aria-hidden="true"></span>
         Please fix the errors in the form below.
 </div>
 </p>
@@ -123,16 +123,16 @@
                 {% if module.deadline_met %}
                     <button type="submit" class="btn btn-primary btn-large">
                     {% if class.id %}
-                        <span class="glyphicon glyphicon-floppy-saved"></span>
+                        <span class="bi bi-floppy"></span>
                         Save course!
                     {% else %}
-                        <span class="glyphicon glyphicon-education"></span>
+                        <span class="bi bi-mortarboard"></span>
                         Teach for {{one}}!
                     {% endif %}
                     </button><br />
                 {% endif %}
             {% endif %}
-            <input class="btn btn-default" type="button" onclick="history.go(-1);" value="{% if module.deadline_met %}Cancel{% else %}Go back{% endif %}" />
+            <input class="btn btn-secondary" type="button" onclick="history.go(-1);" value="{% if module.deadline_met %}Cancel{% else %}Go back{% endif %}" />
             <br /><br />
         </td>
     </tr>    
