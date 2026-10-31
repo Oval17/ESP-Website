@@ -32,6 +32,7 @@ class CommModuleViewTest(ModuleHandlerTestMixin, ProgramFrameworkTest):
     """Behavioral tests for the CommModule views, driven through the client."""
 
     def setUp(self, *args, **kwargs):
+        """Build a program whose three students are enrolled in scheduled classes."""
         kwargs.update({'num_students': 3, 'num_teachers': 3})
         super().setUp(*args, **kwargs)
         self.add_student_profiles()
@@ -49,10 +50,14 @@ class CommModuleViewTest(ModuleHandlerTestMixin, ProgramFrameworkTest):
             ESPUser, Q(id__in=[u.id for u in users]))
 
     def filter_user_ids(self, filterid):
+        """Return the set of user ids matched by the filter with id `filterid`."""
         pqf = PersistentQueryFilter.getFilterFromID(filterid, ESPUser)
         return set(pqf.getList(ESPUser).values_list('id', flat=True))
 
     def compose_data(self, filterobj, **overrides):
+        """Return valid compose-step POST data for `filterobj`, with `overrides`
+        applied.
+        """
         data = {
             'filterid': str(filterobj.id),
             'listcount': '3',
@@ -65,6 +70,7 @@ class CommModuleViewTest(ModuleHandlerTestMixin, ProgramFrameworkTest):
         return data
 
     def enrolled_ids(self):
+        """Return the ids of the students enrolled in the program."""
         return set(ESPUser.objects.filter(
             self.program.students(QObjects=True)['enrolled']
         ).values_list('id', flat=True))
@@ -74,6 +80,7 @@ class CommModuleViewTest(ModuleHandlerTestMixin, ProgramFrameworkTest):
     # ------------------------------------------------------------------
 
     def test_non_admins_cannot_open_commpanel(self):
+        """Students and teachers get the not-an-admin page instead of the panel."""
         for role in ('student', 'teacher'):
             with self.subTest(role=role):
                 self.login_as(role)
@@ -87,6 +94,9 @@ class CommModuleViewTest(ModuleHandlerTestMixin, ProgramFrameworkTest):
                 self.logout()
 
     def test_non_admin_cannot_queue_message_via_commfinal(self):
+        """A student POSTing to commfinal gets the not-an-admin page and queues
+        nothing.
+        """
         filterobj = self.make_filter(self.students)
         self.login_as('student')
         response = self.post_to_module(
@@ -95,6 +105,7 @@ class CommModuleViewTest(ModuleHandlerTestMixin, ProgramFrameworkTest):
         self.assertFalse(MessageRequest.objects.exists())
 
     def test_non_admin_cannot_send_test_email(self):
+        """A teacher can't use send_test_email, and no email goes out."""
         self.login_as('teacher')
         response = self.post_to_module('manage', 'send_test_email', {
             'from': 'info@learningu.org',
@@ -109,6 +120,7 @@ class CommModuleViewTest(ModuleHandlerTestMixin, ProgramFrameworkTest):
     # ------------------------------------------------------------------
 
     def test_commpanel_get_renders_list_selection(self):
+        """A GET of commpanel shows the list-selection page."""
         self.login_as('admin')
         response = self.assert_view_ok(
             self.get_module_url('manage', 'commpanel'))
@@ -116,6 +128,9 @@ class CommModuleViewTest(ModuleHandlerTestMixin, ProgramFrameworkTest):
             response, 'program/modules/commmodule/commpanel_new.html')
 
     def test_commpanel_post_program_list_prepares_compose_step(self):
+        """Choosing a program list saves a filter of exactly those users and fills in
+        the compose step.
+        """
         PlainRedirect.objects.filter(original='info').delete()
         self.login_as('admin')
         response = self.post_to_module('manage', 'commpanel', {
@@ -147,6 +162,7 @@ class CommModuleViewTest(ModuleHandlerTestMixin, ProgramFrameworkTest):
             settings.DEFAULT_EMAIL_ADDRESSES['default'])
 
     def test_commpanel_post_grade_filter_clears_grade_warning(self):
+        """Adding a grade range removes the missing-grade-filter warning."""
         self.login_as('admin')
         response = self.post_to_module('manage', 'commpanel', {
             'recipient_type': 'Student',
@@ -161,6 +177,7 @@ class CommModuleViewTest(ModuleHandlerTestMixin, ProgramFrameworkTest):
                              for w in response.context['mailer_warnings']))
 
     def test_commpanel_post_guardian_sendto_warns(self):
+        """Sending to guardians selects the guardian sendto and shows its warning."""
         self.login_as('admin')
         response = self.post_to_module('manage', 'commpanel', {
             'recipient_type': 'Student',
@@ -176,6 +193,7 @@ class CommModuleViewTest(ModuleHandlerTestMixin, ProgramFrameworkTest):
                             for w in response.context['mailer_warnings']))
 
     def test_commpanel_post_use_checklist_renders_checklist(self):
+        """use_checklist=1 shows the user checklist instead of the compose step."""
         self.login_as('admin')
         response = self.post_to_module('manage', 'commpanel', {
             'recipient_type': 'Student',
@@ -188,6 +206,9 @@ class CommModuleViewTest(ModuleHandlerTestMixin, ProgramFrameworkTest):
             response, 'program/modules/commmodule/step2.html')
 
     def test_commpanel_post_invalid_criteria_rerenders_with_error(self):
+        """Invalid search criteria re-render the panel with an error and save no
+        filter.
+        """
         self.login_as('admin')
         filters_before = PersistentQueryFilter.objects.count()
         response = self.post_to_module('manage', 'commpanel', {
@@ -203,12 +224,16 @@ class CommModuleViewTest(ModuleHandlerTestMixin, ProgramFrameworkTest):
         self.assertEqual(PersistentQueryFilter.objects.count(), filters_before)
 
     def test_commpanel_post_without_list_is_an_error(self):
+        """A POST that selects no list shows the error page."""
         self.login_as('admin')
         response = self.post_to_module('manage', 'commpanel', {'foo': 'bar'})
         self.assertEqual(response.status_code, 500)
         self.assertTemplateUsed(response, 'error.html')
 
     def test_commpanel_reuses_earlier_message_request(self):
+        """Starting from an earlier MessageRequest copies its recipients, sendto,
+        headers and body.
+        """
         filterobj = self.make_filter(self.students[:2])
         old = MessageRequest.createRequest(
             var_dict={'program': self.program},
@@ -244,6 +269,9 @@ class CommModuleViewTest(ModuleHandlerTestMixin, ProgramFrameworkTest):
     # ------------------------------------------------------------------
 
     def test_commprev_renders_preview_for_first_recipient(self):
+        """The preview uses default From/Reply-To, fixes up the body and renders it for
+        the first recipient.
+        """
         recipient = self.students[0]
         filterobj = self.make_filter([recipient])
         PlainRedirect.objects.filter(original='info').delete()
@@ -279,6 +307,9 @@ class CommModuleViewTest(ModuleHandlerTestMixin, ProgramFrameworkTest):
         self.assertFalse(MessageRequest.objects.exists())
 
     def test_commprev_keeps_explicit_from_and_replyto(self):
+        """Explicit From/Reply-To, public view and template choices are kept in the
+        preview.
+        """
         filterobj = self.make_filter(self.students)
         self.login_as('admin')
         response = self.post_to_module('manage', 'commprev', self.compose_data(
@@ -289,6 +320,7 @@ class CommModuleViewTest(ModuleHandlerTestMixin, ProgramFrameworkTest):
         self.assertEqual(response.context['template'], 'minimal')
 
     def test_commprev_rejects_off_domain_from_address(self):
+        """A From address outside the allowed domains is refused."""
         filterobj = self.make_filter(self.students)
         self.login_as('admin')
         response = self.post_to_module('manage', 'commprev', self.compose_data(
@@ -297,6 +329,9 @@ class CommModuleViewTest(ModuleHandlerTestMixin, ProgramFrameworkTest):
                             status_code=500)
 
     def test_commprev_rejects_bad_recipient_input(self):
+        """Bad filter ids, empty lists and unknown sendto functions each give their
+        error.
+        """
         empty = PersistentQueryFilter.create_from_Q(
             ESPUser, Q(username='no-such-user-anywhere'))
         cases = [
@@ -315,6 +350,7 @@ class CommModuleViewTest(ModuleHandlerTestMixin, ProgramFrameworkTest):
                 self.assertContains(response, message, status_code=500)
 
     def test_commprev_flags_links_to_other_programs(self):
+        """Links to other programs are flagged, and links to this program are not."""
         filterobj = self.make_filter(self.students)
         own = self.program.getUrlBase()
         self.login_as('admin')
@@ -332,6 +368,9 @@ class CommModuleViewTest(ModuleHandlerTestMixin, ProgramFrameworkTest):
     # ------------------------------------------------------------------
 
     def test_commfinal_queues_public_guardian_message(self):
+        """commfinal queues a MessageRequest with every submitted field and sends
+        nothing immediately.
+        """
         filterobj = self.make_filter(self.students)
         self.login_as('admin')
         response = self.post_to_module('manage', 'commfinal', self.compose_data(
@@ -361,6 +400,7 @@ class CommModuleViewTest(ModuleHandlerTestMixin, ProgramFrameworkTest):
         self.assertEqual(len(mail.outbox), 0)
 
     def test_commfinal_strips_base64_images(self):
+        """Embedded base64 images are removed from the queued message body."""
         filterobj = self.make_filter(self.students)
         self.login_as('admin')
         self.post_to_module('manage', 'commfinal', self.compose_data(
@@ -372,6 +412,8 @@ class CommModuleViewTest(ModuleHandlerTestMixin, ProgramFrameworkTest):
         self.assertNotIn('base64', msg.msgtext)
 
     def test_commfinal_requires_confirmation_for_other_program_links(self):
+        """Links to other programs need a confirming POST before the message is queued.
+        """
         filterobj = self.make_filter(self.students)
         data = self.compose_data(
             filterobj, body='Sign up at /teach/OtherProg/2020_Fall/makeaclass')
@@ -392,6 +434,8 @@ class CommModuleViewTest(ModuleHandlerTestMixin, ProgramFrameworkTest):
         self.assertEqual(MessageRequest.objects.count(), 1)
 
     def test_commfinal_rejects_bad_input_without_queueing(self):
+        """Bad filter ids and unknown sendto functions give an error and queue nothing.
+        """
         filterobj = self.make_filter(self.students)
         cases = [
             ('non-integer filter', {'filterid': 'abc'}, 'Corrupted POST data'),
@@ -412,6 +456,9 @@ class CommModuleViewTest(ModuleHandlerTestMixin, ProgramFrameworkTest):
     # ------------------------------------------------------------------
 
     def test_maincomm2_returns_to_compose_with_values(self):
+        """Going back from the preview keeps the submitted values and shows the large-
+        mailer warning.
+        """
         filterobj = self.make_filter(self.students)
         self.login_as('admin')
         response = self.post_to_module('manage', 'maincomm2', self.compose_data(
@@ -434,6 +481,9 @@ class CommModuleViewTest(ModuleHandlerTestMixin, ProgramFrameworkTest):
     # ------------------------------------------------------------------
 
     def test_send_test_email_goes_only_to_requesting_admin(self):
+        """The test email goes only to the requesting admin, with a [TEST] subject and
+        filled-in variables.
+        """
         self.login_as('admin')
         response = self.post_to_module('manage', 'send_test_email', {
             'from': 'director@learningu.org',
@@ -455,6 +505,7 @@ class CommModuleViewTest(ModuleHandlerTestMixin, ProgramFrameworkTest):
         self.assertFalse(MessageRequest.objects.exists())
 
     def test_send_test_email_rejects_get(self):
+        """A GET of send_test_email returns 405 and sends nothing."""
         self.login_as('admin')
         response = self.client.get(
             self.get_module_url('manage', 'send_test_email'))
@@ -463,6 +514,7 @@ class CommModuleViewTest(ModuleHandlerTestMixin, ProgramFrameworkTest):
         self.assertEqual(len(mail.outbox), 0)
 
     def test_send_test_email_reports_send_failure(self):
+        """A failed send returns a 500 JSON error, logs it, and sends no test email."""
         self.login_as('admin')
         with self.assertLogs('esp.program.modules.handlers.commmodule',
                              level='ERROR'):
@@ -483,13 +535,18 @@ class CommModuleHelperTest(ProgramFrameworkTest):
     """Direct tests of CommModule's static helpers that need the database."""
 
     def setUp(self, *args, **kwargs):
+        """Create a program and a filter matching its three students."""
         kwargs.update({'num_students': 3, 'num_teachers': 1})
         super().setUp(*args, **kwargs)
         self.filter = PersistentQueryFilter.create_from_Q(
             ESPUser, Q(id__in=[s.id for s in self.students]))
 
     def test_massive_mailer_threshold(self):
+        """The large-mailer warning starts at 2000 recipients and ignores non-numeric
+        counts.
+        """
         def massive(listcount):
+            """Return whether `listcount` triggers the large-mailer warning."""
             return any('massive mailer' in w for w in CommModule.get_mailer_warnings(
                 listcount, self.filter.id, MessageRequest.SEND_TO_SELF_REAL))
         self.assertFalse(massive(1999))
@@ -499,6 +556,7 @@ class CommModuleHelperTest(ProgramFrameworkTest):
         self.assertFalse(massive(None))
 
     def test_guardian_and_emergency_sendtos_warn(self):
+        """Every guardian or emergency sendto warns; the send-to-self options don't."""
         warned = [
             MessageRequest.SEND_TO_GUARDIAN,
             MessageRequest.SEND_TO_EMERGENCY,
@@ -517,6 +575,9 @@ class CommModuleHelperTest(ProgramFrameworkTest):
                 self.assertFalse(any(GUARDIAN_WARNING in w for w in warnings))
 
     def test_grade_filter_detection(self):
+        """A grade filter is found even when nested, and only filters without one get
+        the warning.
+        """
         no_grade = Q(id__in=[1, 2]) & Q(is_active=True)
         nested_grade = Q(is_active=True) & (
             Q(registrationprofile__student_info__graduation_year__lte=2230)
@@ -532,6 +593,9 @@ class CommModuleHelperTest(ProgramFrameworkTest):
             3, self.filter.id, MessageRequest.SEND_TO_SELF_REAL)))
 
     def test_get_valid_filter_or_error(self):
+        """A valid filter id returns the filter; missing, non-numeric or None ids raise
+        ESPError.
+        """
         self.assertEqual(CommModule.get_valid_filter_or_error(self.filter.id).id,
                          self.filter.id)
         for bad in (999999, 'abc', None):
@@ -540,6 +604,9 @@ class CommModuleHelperTest(ProgramFrameworkTest):
                     CommModule.get_valid_filter_or_error(bad)
 
     def test_approx_num_of_recipients_scales_by_emails_per_user(self):
+        """The recipient estimate scales with addresses per user and counts users with
+        none once.
+        """
         self.assertEqual(
             CommModule.approx_num_of_recipients(self.filter, lambda u: [u.email]),
             3)
@@ -556,6 +623,7 @@ class CommModuleHelperTest(ProgramFrameworkTest):
             CommModule.approx_num_of_recipients(empty, lambda u: [u.email]), 0)
 
     def test_admin_search_entry_only_for_commpanel(self):
+        """Only the commpanel view gets an admin search entry."""
         self.assertIsNone(CommModule.get_admin_search_entry(
             self.program, 'manage', 'commprev', None))
         entry = CommModule.get_admin_search_entry(
@@ -565,12 +633,17 @@ class CommModuleHelperTest(ProgramFrameworkTest):
 
 
 class ProgramUrlsInTextTest(SimpleTestCase):
+    """Tests of _program_urls_in_text, which needs no database."""
     def test_empty_inputs(self):
+        """Empty text or an empty current program yields no URLs."""
         self.assertEqual(_program_urls_in_text('', 'Splash/2025_Spring'), [])
         self.assertEqual(_program_urls_in_text('/learn/A/B', ''), [])
         self.assertEqual(_program_urls_in_text(None, 'Splash/2025_Spring'), [])
 
     def test_finds_other_programs_sorted_and_deduplicated(self):
+        """Other programs' URLs are found case-insensitively, sorted and de-duplicated,
+        skipping /manage/ and the current program.
+        """
         text = ('/learn/Splash/2025_Spring/catalog '
                 '/TEACH/Splash/2024_Winter/makeaclass '
                 '/volunteer/HSSP/2024_Fall/signup '
